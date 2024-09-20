@@ -1,5 +1,5 @@
 import RPi.GPIO as GPIO
-import time
+import asyncio
 from obstacle_avoidance.utils import UltrasonicSensorsModule
 
 GPIO.setmode(GPIO.BCM)
@@ -10,7 +10,6 @@ ECHO_PINS = [27, 28, 29, 30]
 try:
     avoidance_module = UltrasonicSensorsModule(TRIG_PINS, ECHO_PINS)
     
-    avoidance_module.monitor_for_nearby_obstacles()
+    asyncio.run(avoidance_module.monitor_for_nearby_obstacles())
 except KeyboardInterrupt:
-    print("Measurement stopped by User")
     GPIO.cleanup()

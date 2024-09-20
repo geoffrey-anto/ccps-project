@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import asyncio
 from typing import List
 import time
 from obstacle_avoidance.config import DISTANCE_THRESHOLD, ABSOLUTE_DISTANCE_THRESHOLD,\
@@ -71,29 +72,35 @@ class UltrasonicSensorsModule:
         self.left_sensor = UltrasonicSensor(trig_pins[2], echo_pins[2])
         self.right_sensor = UltrasonicSensor(trig_pins[3], echo_pins[3])
         
-    def monitor_for_nearby_obstacles(self) -> None:
+    async def monitor_for_nearby_obstacles(self) -> None:
         while True:
-            for i, sensor in enumerate([self.front_sensor, self.back_sensor, self.left_sensor, self.right_sensor]):
-                distance = sensor.get_distance()
-                direction = DIRECTION[i]
-                
-                if distance < DISTANCE_THRESHOLD:
-                    speed = sensor.get_speed()
-                    
-                    if abs(speed) < SPEED_ACCEPTANCE_RANGE: # The obstacle is stationary
-                        continue
-                    elif speed < 0: # The obstacle is moving away from the person
-                        continue
-                    else: # The obstacle is moving towards the person
-                        if distance < ABSOLUTE_DISTANCE_THRESHOLD or speed > SPEED_THRESHOLD:
-                            if direction == "Front":
-                                # Todo: Get 2 images and send to server
-                                pass
-                            else:
-                                print(f"Moving Obstacle detected at {direction}! Watch Out!")
-                            break
+            await asyncio.gather(
+                monitor(self.front_sensor, 0),
+                monitor(self.back_sensor, 1),
+                monitor(self.left_sensor, 2),
+                monitor(self.right_sensor, 3)
+            )
             time.sleep(1)
+
+async def monitor(sensor: UltrasonicSensor, i: int) -> None:
+        distance = sensor.get_distance()
+        direction = DIRECTION[i]
+        
+        if distance < DISTANCE_THRESHOLD:
+            speed = sensor.get_speed()
             
+            if abs(speed) < SPEED_ACCEPTANCE_RANGE: # The obstacle is stationary
+                pass
+            elif speed < 0: # The obstacle is moving away from the person
+                pass
+            else: # The obstacle is moving towards the person
+                if distance < ABSOLUTE_DISTANCE_THRESHOLD or speed > SPEED_THRESHOLD:
+                    if direction == "Front":
+                        print(f"Moving Obstacle detected at {direction}! Watch Out!")
+                        # Todo: Get 2 images and send to server
+                    else:
+                        print(f"Moving Obstacle detected at {direction}! Watch Out!")
+
 """
 CASES:
     1: No obstacle detected -> Just Continue
