@@ -3,8 +3,11 @@ from typing import Any
 import time
 from obstacle_avoidance.config import DISTANCE_THRESHOLD, ABSOLUTE_DISTANCE_THRESHOLD,\
     SPEED_CALCULATION_INTERVAL, SPEED_ACCEPTANCE_RANGE, SPEED_THRESHOLD
+from obstacle_avoidance import warningPriorityBasedQueue
 
 DIRECTION = ["Front", "Back", "Left", "Right"]
+
+taskQueue = warningPriorityBasedQueue()
 
 def measure_distance(trig_pin, echo_pin):
     GPIO.output(trig_pin, True)
@@ -65,7 +68,8 @@ async def monitor(sensor: Any, i: int) -> None:
         else: # The obstacle is moving towards the person
             if distance < ABSOLUTE_DISTANCE_THRESHOLD or speed > SPEED_THRESHOLD:
                 if direction == "Front":
-                    print(f"Moving Obstacle detected at {direction}! Watch Out!")
+                    taskQueue.add(f"Moving Obstacle detected at {direction}! Watch Out!", distance, speed)
                     # Todo: Get 2 images and send to server
                 else:
-                    print(f"Moving Obstacle detected at {direction}! Watch Out!")
+                    taskQueue.add(f"Moving Obstacle detected at {direction}! Watch Out!", distance, speed)
+    
